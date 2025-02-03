@@ -26,7 +26,7 @@ os_task_t os_task_create(const char *taskName, void (*func)(void*), void *arg, i
         case OS_TASK_PRIO_HIGH: uxPriority = 21; break;
     }
     TaskHandle_t taskHandle = NULL;
-    int pass = xTaskCreatePinnedToCore((TaskFunction_t)func, taskName, stackSize, arg, uxPriority, &taskHandle, !CONFIG_ARDUINO_RUNNING_CORE);
+    xTaskCreatePinnedToCore((TaskFunction_t)func, taskName, stackSize, arg, uxPriority, &taskHandle, !CONFIG_ARDUINO_RUNNING_CORE);
     return taskHandle;
 }
 os_task_t os_task_create_arduino(const char *taskName, void (*func)(void*), void *arg) {
@@ -101,7 +101,6 @@ void os_twai_filter(uint code, uint mask, bool single) {
 }
 
 esp_err_t os_twai_install(uint pinTx, uint pinRx, uint mode, uint baud, int txLen, int rxLen, uint alerts) {
-    esp_err_t err = ESP_FAIL;
     // Configure TWAI parameters
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(pinTx, pinRx, mode);
     g_config.tx_queue_len = txLen;
@@ -127,7 +126,7 @@ static struct {
 
 bool os_rmt_install(uint pinTx) {
     rmtStruct.pin = pinTx;
-    rmtStruct.data[RMT_SYMBOLS_OF(rmtStruct.data)-1] = (rmt_data_t){{200, 0, 200, 0}};
+    rmtStruct.data[RMT_SYMBOLS_OF(rmtStruct.data)-1] = (rmt_data_t){ .duration0=200,.level0=0,.duration1=200,.level1=0 };
 #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
     return rmtInit(pinTx, RMT_TX_MODE, RMT_MEM_NUM_BLOCKS_1, 10000000);
 #else
@@ -138,8 +137,8 @@ bool os_rmt_install(uint pinTx) {
 }
 
 bool os_rmt_write_blocking(uint8_t buffer[4][3]) {
-    const rmt_data_t bit0 = {{3, 1, 9, 0}};
-    const rmt_data_t bit1 = {{6, 1, 6, 0}};
+    const rmt_data_t bit0 = { .duration0=3,.level0=1,.duration1=9,.level1=0 };
+    const rmt_data_t bit1 = { .duration0=6,.level0=1,.duration1=6,.level1=0 };
     for (int i=0,item=0; item<4; item++) {
         for (int col=0; col<3; col++) {
             for (int bit=0; bit<8; bit++,i++) {
